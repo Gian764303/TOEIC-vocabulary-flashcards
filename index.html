@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards TOEIC Minimalistas</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3">
+</head>
+
+<body>
+    <div class="app-container">
+        <header id="dashboard-header" class="app-header">
+            <h1>Vocabulario TOEIC</h1>
+
+            <div id="user-profile" class="user-profile hidden">
+                <div class="avatar-wrapper" id="avatar-btn">
+                    <img id="user-avatar" src="" alt="Avatar">
+                    <div id="profile-dropdown" class="profile-dropdown hidden">
+                        <button id="logout-btn" class="logout-dropdown-btn">Cerrar Sesión</button>
+                    </div>
+                </div>
+            </div>
+            <div id="stats-container" class="stats-container hidden">
+                <span class="stat-pill new-pill" id="pill-new">Nuevas: <strong id="stat-new">0</strong></span>
+                <span class="stat-pill learning-pill" id="pill-learning">Aprendiendo: <strong
+                        id="stat-learning">0</strong></span>
+                <span class="stat-pill due-pill" id="pill-review">A repasar: <strong id="stat-review">0</strong></span>
+            </div>
+            <button id="settings-btn" class="secondary-btn small-btn icon-btn hidden" title="Ajustes">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Cabecera de Estudio -->
+        <header id="study-header" class="app-header hidden">
+            <button id="back-to-dashboard" class="icon-btn back-btn" title="Volver al Dashboard">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                </svg>
+            </button>
+            <div id="study-stats" class="stats-container">
+                <span class="stat-pill new-pill" id="study-pill-new">Nuevas: <strong
+                        id="study-stat-new">0</strong></span>
+                <span class="stat-pill learning-pill" id="study-pill-learning">Aprendiendo: <strong
+                        id="study-stat-learning">0</strong></span>
+                <span class="stat-pill due-pill" id="study-pill-review">A repasar: <strong
+                        id="study-stat-review">0</strong></span>
+            </div>
+        </header>
+
+        <main id="landing-view" class="view active">
+            <div class="dashboard-content landing-layout">
+                <div class="landing-hero">
+                    <img src="TOEIC_logo.png" alt="Logo TOEIC" class="dashboard-logo">
+                    <p class="description">Practica las 1000 palabras que piden para alcanzar la mejor puntuación en tu
+                        examen TOEIC.</p>
+                </div>
+                <div class="landing-actions">
+                    <button id="login-start-btn" class="primary-btn">Empezar</button>
+                    <button id="landing-login-btn" class="secondary-btn landing-login-link" type="button">
+                        <span class="landing-login-line">Ya tengo una cuenta</span>
+                        <span class="landing-login-line landing-login-cta">Iniciar sesión</span>
+                    </button>
+                </div>
+            </div>
+            <footer class="landing-footer">
+                <p>© <span id="landing-year"></span>
+                    <a href="https://github.com/Gian764303" target="_blank" rel="noopener noreferrer">Gian764303</a>.
+                    Todos los derechos reservados.
+                </p>
+            </footer>
+        </main>
+
+        <main id="dashboard-view" class="view">
+            <div class="dashboard-content">
+
+                <!-- Racha central (misma estructura, escalada grande) -->
+                <div id="streak-container" class="streak-container dash-center" title="Racha diaria (15 flashcards)">
+                    <div class="circular-progress">
+                        <svg width="40" height="40" viewBox="0 0 40 40">
+                            <circle class="progress-bg" cx="20" cy="20" r="16"></circle>
+                            <circle class="progress-bar" id="streak-ring" cx="20" cy="20" r="16"
+                                stroke-dasharray="100.5" stroke-dashoffset="100.5"></circle>
+                        </svg>
+                        <div class="streak-fire inactive" id="streak-icon">🔥</div>
+                    </div>
+                    <div class="streak-info">
+                        <span id="streak-count" class="streak-count">0</span>
+                        <small id="streak-target">0/15</small>
+                    </div>
+                </div>
+
+                <div id="study-start-container">
+                    <p id="dashboard-subtitle">Cargando cartas...</p>
+                    <button id="start-btn" class="primary-btn">Comenzar a estudiar</button>
+                </div>
+            </div>
+        </main>
+
+        <main id="study-view" class="view">
+            <div class="flashcard-container">
+                <div id="flashcard" class="flashcard">
+
+                    <!-- Front of the Card -->
+                    <div class="card-face card-front">
+                        <div class="card-content">
+                            <h2 id="card-word">word</h2>
+                            <button class="audio-btn" id="front-audio-btn" title="Reproducir Audio">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Back of the Card -->
+                    <div class="card-face card-back">
+                        <div class="card-content">
+                            <h2 id="card-translation" class="translation-text">traducción</h2>
+
+                            <div class="example-section">
+                                <p id="card-en-example" class="en-example">English Example</p>
+                                <p id="card-es-example" class="es-example">Spanish Example</p>
+                                <button class="audio-btn small" id="back-audio-btn"
+                                    title="Reproducir Audio del Ejemplo">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                    </svg>
+                                    Escuchar Ejemplo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="action-controls" class="action-controls">
+                <button id="show-answer-btn" class="primary-btn full-width">Mostrar Respuesta</button>
+                <div id="rating-btns" class="rating-btns hidden">
+                    <button class="rating-btn again" data-rating="again">
+                        <span class="rating-label">Otra vez</span>
+                        <span class="rating-time" id="time-again"></span>
+                    </button>
+                    <button class="rating-btn hard" data-rating="hard">
+                        <span class="rating-label">Difícil</span>
+                        <span class="rating-time" id="time-hard"></span>
+                    </button>
+                    <button class="rating-btn good" data-rating="good">
+                        <span class="rating-label">Bien</span>
+                        <span class="rating-time" id="time-good"></span>
+                    </button>
+                    <button class="rating-btn easy" data-rating="easy">
+                        <span class="rating-label">Fácil</span>
+                        <span class="rating-time" id="time-easy"></span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading State -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Cargando Vocabulario...</p>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Inicio de Sesión Requerido</h2>
+            <p>Para guardar tu progreso es necesario iniciar sesión con una cuenta de Google.</p>
+            <button id="google-login-btn" class="google-btn">
+                <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4" />
+                    <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853" />
+                    <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05" />
+                    <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335" />
+                    <path d="M1 1h22v22H1z" fill="none" />
+                </svg>
+                Iniciar Sesión con Google
+            </button>
+            <button id="close-modal-btn" class="secondary-btn">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Ajustes de Estudio</h2>
+            <div class="settings-form">
+                <div class="settings-group">
+                    <label for="study-mode">Cartas Diarias:</label>
+                    <select id="study-mode" class="select-input">
+                        <option value="active-recall">15 nuevas/día</option>
+                        <option value="unlimited">Sin límite</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <label for="study-order">Orden de las palabras:</label>
+                    <select id="study-order" class="select-input">
+                        <option value="random">Aleatorio</option>
+                        <option value="alphabetical">Alfabético (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+            <button id="close-settings-btn" class="primary-btn full-width">Guardar y Cerrar</button>
+        </div>
+    </div>
+
+    <!-- PapaParse CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
