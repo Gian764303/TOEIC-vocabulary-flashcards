@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Aprende vocabulario TOEIC con flashcards interactivas y seguimiento de progreso.">
     <title>TOEIC Vocabulary Flashcards</title>
+    <meta name="theme-color" content="#121212">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TOEIC Vocab">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="icon/apple-touch-icon.png">
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3">
@@ -228,6 +236,16 @@
                 </div>
             </div>
             <button id="close-settings-btn" class="primary-btn full-width">Guardar y Cerrar</button>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div id="install-banner" class="install-banner hidden" role="region" aria-label="Instalar aplicación">
+        <div class="install-banner-content">
+            <img src="icon/icon-192x192.png" alt="" class="install-banner-icon" width="40" height="40">
+            <p class="install-banner-text">Instala la aplicación para una mejor experiencia.</p>
+            <button id="install-app-btn" class="primary-btn install-banner-btn" type="button">Instalar</button>
+            <button id="install-dismiss-btn" class="install-banner-dismiss" type="button" aria-label="Cerrar">×</button>
         </div>
     </div>
 

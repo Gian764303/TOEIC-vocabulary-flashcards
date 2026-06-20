@@ -959,4 +959,66 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     init();
+    initInstallBanner();
 });
+
+const INSTALL_DISMISSED_KEY = 'toeic-pwa-install-dismissed';
+let deferredInstallPrompt = null;
+
+function isAppInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+}
+
+function showInstallBanner() {
+    const banner = document.getElementById('install-banner');
+    if (!banner || isAppInstalled() || localStorage.getItem(INSTALL_DISMISSED_KEY)) return;
+    banner.classList.remove('hidden');
+}
+
+function hideInstallBanner() {
+    const banner = document.getElementById('install-banner');
+    if (banner) banner.classList.add('hidden');
+}
+
+function initInstallBanner() {
+    const installBtn = document.getElementById('install-app-btn');
+    const dismissBtn = document.getElementById('install-dismiss-btn');
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        showInstallBanner();
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        hideInstallBanner();
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            hideInstallBanner();
+        });
+    }
+
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+            localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
+            hideInstallBanner();
+        });
+    }
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch((error) => {
+            console.warn('Service worker registration failed:', error);
+        });
+    });
+}
