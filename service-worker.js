@@ -1,4 +1,4 @@
-const CACHE_NAME = 'toeic-vocabulary-v7';
+const CACHE_NAME = 'toeic-vocabulary-v15';
 
 const PRECACHE_ASSETS = [
   './',
@@ -6,7 +6,6 @@ const PRECACHE_ASSETS = [
   './style.css',
   './app.js',
   './manifest.webmanifest',
-  './icon/app-icon.webp',
   './icon/favicon-32x32.png',
   './icon/apple-touch-icon.png',
   './icon/icon-192x192.png',
