@@ -33,7 +33,6 @@ try {
     console.error("Firebase no está configurado correctamente aún.", error);
 }
 
-const STREAK_TARGET = 15;
 const GUEST_PREVIEW_COUNT = 10;
 const DAILY_CARD_OPTIONS = [15, 30, 50, 65, 80, 100];
 
@@ -43,12 +42,66 @@ const PROGRESS_META_KEYS = new Set([
     'currentStreak',
     'cardsStudiedToday',
     'lastStudyDate',
-    'lastStreakDate'
+    'lastStreakDate',
+    'dailyStreakTarget'
 ]);
 
+const LOCAL_PROGRESS_KEY = 'toeic-progress';
+const LOCAL_SETTINGS_KEY = 'toeic-settings';
+
+function getLocalProgressKey() {
+    return `${LOCAL_PROGRESS_KEY}:${currentUser?.uid || ''}`;
+}
+
+function getLocalSettingsKey() {
+    return `${LOCAL_SETTINGS_KEY}:${currentUser?.uid || ''}`;
+}
+
+function saveProgressLocally() {
+    if (!currentUser) return;
+    try {
+        localStorage.setItem(getLocalProgressKey(), JSON.stringify(progress));
+        localStorage.setItem(getLocalSettingsKey(), JSON.stringify(userSettings));
+    } catch (e) {
+        console.error('Error saving progress locally', e);
+    }
+}
+
+function loadProgressLocally() {
+    if (!currentUser) return false;
+    try {
+        const savedProgress = localStorage.getItem(getLocalProgressKey());
+        const savedSettings = localStorage.getItem(getLocalSettingsKey());
+        if (savedProgress) progress = JSON.parse(savedProgress);
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            userSettings = {
+                studiedToday: parsed.studiedToday || 0,
+                lastDate: parsed.lastDate || '',
+                order: parsed.order || 'random',
+                studyMode: normalizeStudyMode(parsed.studyMode)
+            };
+        }
+        return Boolean(savedProgress);
+    } catch (e) {
+        console.error('Error loading local progress', e);
+        return false;
+    }
+}
+
+function applyLoadedSettings(saved = {}) {
+    userSettings = {
+        studiedToday: saved.studiedToday || 0,
+        lastDate: saved.lastDate || '',
+        order: saved.order || 'random',
+        studyMode: normalizeStudyMode(saved.studyMode)
+    };
+    if (els.studyOrderSelect) els.studyOrderSelect.value = userSettings.order;
+    if (els.studyModeSelect) els.studyModeSelect.value = userSettings.studyMode;
+}
+
 function normalizeStudyMode(mode) {
-    if (mode === 'unlimited') return 'unlimited';
-    if (mode === 'active-recall') return '15';
+    if (mode === 'unlimited' || mode === 'active-recall') return '15';
     const value = String(mode);
     return DAILY_CARD_OPTIONS.includes(Number(value)) ? value : '15';
 }
@@ -60,6 +113,25 @@ function isUnlimitedStudy() {
 function getDailyCardLimit() {
     if (isUnlimitedStudy()) return Infinity;
     return Number(normalizeStudyMode(userSettings.studyMode));
+}
+
+function getLocalToday() {
+    return new Date().toLocaleDateString('en-CA');
+}
+
+function getStreakTarget() {
+    if (isUnlimitedStudy()) return null;
+    return getDailyCardLimit();
+}
+
+function syncDailyStreakTarget() {
+    progress.dailyStreakTarget = isUnlimitedStudy() ? null : getDailyCardLimit();
+}
+
+function hasCompletedDailyStreakTarget(cardsStudied = progress.cardsStudiedToday || 0) {
+    const target = getStreakTarget();
+    if (target === null) return false;
+    return cardsStudied >= target;
 }
 
 function getStudyNewCount(newCount) {
@@ -295,6 +367,7 @@ function setupAuthListeners() {
         els.closeSettingsBtn.addEventListener('click', () => {
             if (els.studyModeSelect) userSettings.studyMode = normalizeStudyMode(els.studyModeSelect.value);
             if (els.studyOrderSelect) userSettings.order = els.studyOrderSelect.value;
+            syncDailyStreakTarget();
             saveProgress();
             updateDashboardStats();
             els.settingsModal.classList.add('hidden');
@@ -308,41 +381,56 @@ function setupAuthListeners() {
 }
 
 async function loadProgress() {
-    if (!currentUser || !db) return;
-    try {
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
+    if (!currentUser) return;
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            progress = data.progress || {};
-            const saved = data.settings || {};
-            userSettings = {
-                studiedToday: saved.studiedToday || 0,
-                lastDate: saved.lastDate || "",
-                order: saved.order || "random",
-                studyMode: normalizeStudyMode(saved.studyMode)
-            };
-            if (els.studyOrderSelect) els.studyOrderSelect.value = userSettings.order;
-            if (els.studyModeSelect) els.studyModeSelect.value = userSettings.studyMode;
-        } else {
-            progress = {};
-            userSettings = { studiedToday: 0, lastDate: "", order: "random", studyMode: "15" };
+    let loadedFromCloud = false;
+
+    if (db) {
+        try {
+            const docRef = doc(db, 'users', currentUser.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                progress = data.progress || {};
+                applyLoadedSettings(data.settings || {});
+                loadedFromCloud = true;
+            } else {
+                progress = {};
+                applyLoadedSettings({});
+            }
+        } catch (e) {
+            console.error('Error loading progress from Firestore', e);
         }
-        validateStreakIntegrity();
-    } catch (e) {
-        console.error("Error loading progress from Firestore", e);
-        progress = {};
     }
+
+    if (!loadedFromCloud) {
+        const loadedLocally = loadProgressLocally();
+        if (!loadedLocally) {
+            progress = {};
+            applyLoadedSettings({});
+        } else {
+            applyLoadedSettings(userSettings);
+        }
+    } else {
+        saveProgressLocally();
+    }
+
+    validateStreakIntegrity();
 }
 
 async function saveProgress() {
-    if (!currentUser || !db) return;
+    if (!currentUser) return;
+
+    saveProgressLocally();
+
+    if (!db) return;
+
     try {
-        const docRef = doc(db, "users", currentUser.uid);
+        const docRef = doc(db, 'users', currentUser.uid);
         await setDoc(docRef, { progress, settings: userSettings }, { merge: true });
     } catch (e) {
-        console.error("Error saving progress to Firestore", e);
+        console.error('Error saving progress to Firestore', e);
     }
 }
 
@@ -513,53 +601,78 @@ function evaluateStreakOnNewDay(today) {
     if (!progress.lastStudyDate) {
         progress.cardsStudiedToday = 0;
         progress.lastStudyDate = today;
+        syncDailyStreakTarget();
         return;
     }
     if (progress.lastStudyDate === today) return;
 
     const daysSinceLastSession = daysBetween(progress.lastStudyDate, today);
-    const completedLastSession =
-        (progress.cardsStudiedToday || 0) >= STREAK_TARGET ||
-        progress.lastStreakDate === progress.lastStudyDate;
+    const yesterdayTarget = progress.dailyStreakTarget;
+    let completedLastSession = progress.lastStreakDate === progress.lastStudyDate;
 
-    // Un día sin las 15 cartas (o sin abrir la app) rompe la racha
-    if (daysSinceLastSession === 1) {
-        if (!completedLastSession) {
-            progress.currentStreak = 0;
+    if (!completedLastSession) {
+        if (yesterdayTarget == null) {
+            completedLastSession = (progress.cardsStudiedToday || 0) > 0;
+        } else {
+            completedLastSession = (progress.cardsStudiedToday || 0) >= yesterdayTarget;
         }
-    } else if (daysSinceLastSession > 1) {
+    }
+
+    if (daysSinceLastSession > 1) {
         progress.currentStreak = 0;
+        delete progress.lastStreakDate;
+    } else if (daysSinceLastSession === 1 && !completedLastSession) {
+        progress.currentStreak = 0;
+        delete progress.lastStreakDate;
     }
 
     progress.cardsStudiedToday = 0;
     progress.lastStudyDate = today;
+    syncDailyStreakTarget();
     saveProgress();
 }
 
 function updateStreakUI() {
     if (!els.streakContainer) return;
 
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = getLocalToday();
 
     if (typeof progress.currentStreak === 'undefined') progress.currentStreak = 0;
     if (typeof progress.cardsStudiedToday === 'undefined') progress.cardsStudiedToday = 0;
 
     if (progress.lastStudyDate !== today) {
         evaluateStreakOnNewDay(today);
+    } else if (typeof progress.dailyStreakTarget === 'undefined') {
+        syncDailyStreakTarget();
     }
 
     validateStreakIntegrity();
 
-    const target = STREAK_TARGET;
-    const count = Math.min(progress.cardsStudiedToday, target);
+    const target = getStreakTarget();
+    const studiedToday = progress.cardsStudiedToday || 0;
     const circumference = 100.5;
+
+    els.streakCount.textContent = progress.currentStreak;
+
+    if (target === null) {
+        els.streakTarget.textContent = `${studiedToday}/∞`;
+        els.streakRing.style.strokeDashoffset = `${circumference}`;
+        els.streakIcon.classList.add('inactive');
+        els.streakIcon.classList.remove('active');
+        els.streakRing.classList.remove('completed');
+        els.streakContainer.title = 'Racha diaria (sin límite de cartas)';
+        return;
+    }
+
+    const count = Math.min(studiedToday, target);
+    const completed = studiedToday >= target;
     const offset = circumference - (count / target) * circumference;
 
-    els.streakRing.style.strokeDashoffset = offset;
-    els.streakCount.textContent = progress.currentStreak;
+    els.streakRing.style.strokeDashoffset = `${offset}`;
     els.streakTarget.textContent = `${count}/${target}`;
+    els.streakContainer.title = `Racha diaria (${target} cartas/día)`;
 
-    if (count >= target) {
+    if (completed) {
         els.streakIcon.classList.remove('inactive');
         els.streakIcon.classList.add('active');
         els.streakRing.classList.add('completed');
@@ -568,7 +681,6 @@ function updateStreakUI() {
         els.streakIcon.classList.remove('active');
         els.streakRing.classList.remove('completed');
     }
-
 }
 
 function updateStudyCallToAction(stats, now) {
@@ -631,7 +743,7 @@ function updateDashboardStats() {
     }
 
     const now = Date.now();
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = getLocalToday();
 
     if (userSettings.lastDate !== today) {
         userSettings.studiedToday = 0;
@@ -746,7 +858,7 @@ function startSession() {
         return;
     }
 
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = getLocalToday();
     if (userSettings.lastDate !== today) {
         userSettings.studiedToday = 0;
         userSettings.lastDate = today;
@@ -902,18 +1014,16 @@ function handleRating(rating) {
         userSettings.studiedToday++;
     }
 
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = getLocalToday();
     if (progress.lastStudyDate !== today) {
         evaluateStreakOnNewDay(today);
     }
 
     progress.cardsStudiedToday++;
 
-    if (progress.cardsStudiedToday >= STREAK_TARGET) {
-        if (progress.lastStreakDate !== today) {
-            progress.currentStreak = (progress.currentStreak || 0) + 1;
-            progress.lastStreakDate = today;
-        }
+    if (hasCompletedDailyStreakTarget() && progress.lastStreakDate !== today) {
+        progress.currentStreak = (progress.currentStreak || 0) + 1;
+        progress.lastStreakDate = today;
     }
 
     progress[card.word] = sm2;
@@ -993,6 +1103,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (els.studyModeSelect) {
         els.studyModeSelect.addEventListener('change', (e) => {
             userSettings.studyMode = normalizeStudyMode(e.target.value);
+            syncDailyStreakTarget();
             saveProgress();
             updateDashboardStats();
         });
@@ -1001,6 +1112,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (els.studyView?.classList.contains('active')) {
             fitCardTexts();
         }
+    });
+    window.addEventListener('beforeunload', () => {
+        if (currentUser) saveProgressLocally();
     });
     init();
     initInstallBanner();

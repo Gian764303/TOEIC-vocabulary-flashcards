@@ -1072,14 +1072,14 @@ button {
 
 .progress-bar {
     fill: none;
-    stroke: #f97316; /* Naranja brillante */
+    stroke: #4CAF50;
     stroke-width: 3px;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s;
 }
 
 .progress-bar.completed {
-    stroke: #ef4444; /* Rojo/Naranja intenso */
+    stroke: #ef4444;
 }
 
 .streak-fire {
