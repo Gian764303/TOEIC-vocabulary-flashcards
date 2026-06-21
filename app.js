@@ -33,9 +33,9 @@ try {
     console.error("Firebase no está configurado correctamente aún.", error);
 }
 
-const CARDS_PER_DAY = 15;
 const STREAK_TARGET = 15;
 const GUEST_PREVIEW_COUNT = 10;
+const DAILY_CARD_OPTIONS = [15, 30, 50, 65, 80, 100];
 
 const FAKE_INTERVAL_OPTIONS = ['1m', '5m', '10m', '1h', '6h', '1d', '2d', '4d', '1 mes'];
 
@@ -46,13 +46,25 @@ const PROGRESS_META_KEYS = new Set([
     'lastStreakDate'
 ]);
 
+function normalizeStudyMode(mode) {
+    if (mode === 'unlimited') return 'unlimited';
+    if (mode === 'active-recall') return '15';
+    const value = String(mode);
+    return DAILY_CARD_OPTIONS.includes(Number(value)) ? value : '15';
+}
+
 function isUnlimitedStudy() {
     return userSettings.studyMode === 'unlimited';
 }
 
+function getDailyCardLimit() {
+    if (isUnlimitedStudy()) return Infinity;
+    return Number(normalizeStudyMode(userSettings.studyMode));
+}
+
 function getStudyNewCount(newCount) {
     if (isUnlimitedStudy()) return newCount;
-    const remaining = Math.max(0, CARDS_PER_DAY - userSettings.studiedToday);
+    const remaining = Math.max(0, getDailyCardLimit() - userSettings.studiedToday);
     return Math.min(newCount, remaining);
 }
 
@@ -93,7 +105,7 @@ let sessionCards = [];
 let currentIndex = 0;
 let currentAudio = null;
 let currentUser = null;
-let userSettings = { studiedToday: 0, lastDate: "", order: "random", studyMode: "active-recall" };
+let userSettings = { studiedToday: 0, lastDate: "", order: "random", studyMode: "15" };
 let isGuestSession = false;
 let guestSessionCompleted = false;
 
@@ -281,7 +293,7 @@ function setupAuthListeners() {
 
     if (els.closeSettingsBtn) {
         els.closeSettingsBtn.addEventListener('click', () => {
-            if (els.studyModeSelect) userSettings.studyMode = els.studyModeSelect.value;
+            if (els.studyModeSelect) userSettings.studyMode = normalizeStudyMode(els.studyModeSelect.value);
             if (els.studyOrderSelect) userSettings.order = els.studyOrderSelect.value;
             saveProgress();
             updateDashboardStats();
@@ -309,13 +321,13 @@ async function loadProgress() {
                 studiedToday: saved.studiedToday || 0,
                 lastDate: saved.lastDate || "",
                 order: saved.order || "random",
-                studyMode: saved.studyMode || "active-recall"
+                studyMode: normalizeStudyMode(saved.studyMode)
             };
             if (els.studyOrderSelect) els.studyOrderSelect.value = userSettings.order;
             if (els.studyModeSelect) els.studyModeSelect.value = userSettings.studyMode;
         } else {
             progress = {};
-            userSettings = { studiedToday: 0, lastDate: "", order: "random", studyMode: "active-recall" };
+            userSettings = { studiedToday: 0, lastDate: "", order: "random", studyMode: "15" };
         }
         validateStreakIntegrity();
     } catch (e) {
@@ -583,12 +595,13 @@ function updateStudyCallToAction(stats, now) {
     const dailyNewLimitReached = !isUnlimitedStudy()
         && newCount > 0
         && studyNewCount === 0
-        && userSettings.studiedToday >= CARDS_PER_DAY;
+        && userSettings.studiedToday >= getDailyCardLimit();
 
     if (dailyNewLimitReached) {
+        const dailyLimit = getDailyCardLimit();
         els.dashboardSubtitle.textContent = nextTime
-            ? `Hoy ya estudiaste tus ${CARDS_PER_DAY} cartas nuevas. Próxima carta ${formatScheduledTime(nextTime)}.`
-            : `Hoy ya estudiaste tus ${CARDS_PER_DAY} cartas nuevas.`;
+            ? `Hoy ya estudiaste tus ${dailyLimit} cartas nuevas. Próxima carta ${formatScheduledTime(nextTime)}.`
+            : `Hoy ya estudiaste tus ${dailyLimit} cartas nuevas.`;
     } else if (nextTime) {
         els.dashboardSubtitle.textContent = `Nada listo ahora. Próxima carta ${formatScheduledTime(nextTime)}.`;
     } else if (newCount === 0) {
@@ -751,7 +764,7 @@ function startSession() {
     }
 
     if (!isUnlimitedStudy()) {
-        const newCardsAvailableToday = Math.max(0, CARDS_PER_DAY - userSettings.studiedToday);
+        const newCardsAvailableToday = Math.max(0, getDailyCardLimit() - userSettings.studiedToday);
         newCards = newCards.slice(0, newCardsAvailableToday);
     }
 
@@ -953,7 +966,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     if (els.studyModeSelect) {
         els.studyModeSelect.addEventListener('change', (e) => {
-            userSettings.studyMode = e.target.value;
+            userSettings.studyMode = normalizeStudyMode(e.target.value);
             saveProgress();
             updateDashboardStats();
         });
