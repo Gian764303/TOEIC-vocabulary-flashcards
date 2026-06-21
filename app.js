@@ -790,6 +790,30 @@ function startSession() {
     showCard();
 }
 
+function fitTextToCard(element, minPx = 14) {
+    if (!element) return;
+
+    element.style.fontSize = '';
+    const container = element.closest('.card-content');
+    if (!container) return;
+
+    const maxWidth = container.clientWidth;
+    if (maxWidth <= 0) return;
+
+    let size = parseFloat(getComputedStyle(element).fontSize);
+    element.style.fontSize = `${size}px`;
+
+    while (element.scrollWidth > maxWidth && size > minPx) {
+        size -= 1;
+        element.style.fontSize = `${size}px`;
+    }
+}
+
+function fitCardTexts() {
+    fitTextToCard(els.cardWord);
+    fitTextToCard(els.cardTranslation);
+}
+
 function showCard() {
     if (currentIndex >= sessionCards.length) {
         if (isGuestSession) guestSessionCompleted = true;
@@ -818,6 +842,8 @@ function showCard() {
     };
 
     setTimeout(() => playAudio(card.audio), 300);
+
+    requestAnimationFrame(() => fitCardTexts());
 }
 
 function showAnswer() {
@@ -971,6 +997,11 @@ window.addEventListener('DOMContentLoaded', () => {
             updateDashboardStats();
         });
     }
+    window.addEventListener('resize', () => {
+        if (els.studyView?.classList.contains('active')) {
+            fitCardTexts();
+        }
+    });
     init();
     initInstallBanner();
 });
